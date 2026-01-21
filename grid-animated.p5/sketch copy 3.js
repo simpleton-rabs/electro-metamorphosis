@@ -9,14 +9,16 @@ const CCDial2 = 33; // green
 const CCDial3 = 34; // blue
 const CCDial4 = 35; // rotation
 
+
 // ================= GLOBALS =================
-let r = 0,
-  g = 150,
-  b = 50;
+
+let r = 255, g = 0, b = 0;
 let scaleFactor = 1;
 let rotation = 0;
 let strokeW = 1;
-let randomness = 1;
+let random = 1;
+
+let myController;
 
 // morph
 let morphAmount = 0;
@@ -24,20 +26,21 @@ let morphAmount = 0;
 // particles
 let particles = [];
 
-// MIDI controller
-let myController;
 
 // ================= SETUP =================
+
 function setup() {
   createCanvas(innerWidth, innerHeight, WEBGL);
   angleMode(DEGREES);
 
   WebMidi.enable()
     .then(onEnabled)
-    .catch((err) => alert(err));
+    .catch(err => alert(err));
 }
 
+
 // ================= MIDI =================
+
 function onEnabled() {
   if (WebMidi.inputs.length < 1) {
     console.log("No device detected.");
@@ -69,28 +72,24 @@ function allCC(e) {
       break;
 
     case CCSLIDER4:
-      randomness = map(e.data[2], 0, 127, 1, 10);
+      random = map(e.data[2], 0, 127, 1, 10);
       rebuildParticles();
       break;
 
-    case CCDial1:
-      r = 255 * ratio;
-      break;
-    case CCDial2:
-      g = 255 * ratio;
-      break;
-    case CCDial3:
-      b = 255 * ratio;
-      break;
+    case CCDial1: r = 255 * ratio; break;
+    case CCDial2: g = 255 * ratio; break;
+    case CCDial3: b = 255 * ratio; break;
 
     case CCDial4:
-      rotation = map(e.data[2], 0, 127, 0, 360) * 0.01;
+      rotation = map(e.data[2], 0, 127, 0, 360) * 0.1;
       rebuildParticles();
       break;
   }
 }
 
+
 // ================= PARTICLES =================
+
 class Particle {
   constructor(x, y, z) {
     this.origin = createVector(x, y, z);
@@ -102,29 +101,40 @@ class Particle {
     // diffuse motion
     this.pos.add(this.vel);
 
-    // optional wrap-around to keep particles in view
+    // soft wrap
     if (this.pos.mag() > 1500) {
       this.pos = p5.Vector.random3D().mult(500);
     }
   }
+
+  draw() {
+    let finalPos = p5.Vector.lerp(this.origin, this.pos, morphAmount);
+    point(finalPos.x, finalPos.y, finalPos.z);
+  }
 }
 
-// ================= BUILD PARTICLES FROM SHAPE =================
+
+// ================= BUILD PARTICLES FROM YOUR SHAPE =================
+
 function rebuildParticles() {
   particles = [];
+
   for (var i = 0; i <= 200; i++) {
     for (var j = 0; j <= 300; j += 60) {
+
       let rad = i * scaleFactor;
       let x = rad * cos(j);
       let y = rad * sin(j);
-      let z = cos(frameCount * 10 + 4 * i) * 50 * randomness;
+      let z = cos(frameCount * 10 + 4 * i) * 50 * random;
 
       particles.push(new Particle(x, y, z));
     }
   }
 }
 
+
 // ================= DRAW =================
+
 function draw() {
   background(0);
   rotateX(60);
@@ -134,45 +144,32 @@ function draw() {
   strokeWeight(strokeW);
 
   translate(0, -800, -350);
-  // rotate(rotation);
+  rotate(rotation);
 
-  let particlesPerShape = 6; // j steps = 0,60,120,...300
+  // -------- ORIGINAL SHAPE --------
+  if (morphAmount < 0.01) {
+    for (var i = 0; i <= 200; i++) {
+      beginShape();
+      for (var j = 0; j <= 300; j += 60) {
+        var rad = i * scaleFactor;
+        var x = rad * cos(j);
+        var y = rad * sin(j);
+        var z = cos(frameCount * 10 + 4 * i) * 50 * random;
 
-  // draw pattern with morphing
-  for (var i = 0; i <= 200; i++) {
-    beginShape();
-    for (var j = 0; j <= 300; j += 60) {
-     
-      // translate(0, -800, -350);
-      rotate(rotation);
-
-      let idx = i * particlesPerShape + j / 60;
-      let rad = i * scaleFactor;
-      let x = rad * cos(j);
-      let y = rad * sin(j);
-      let z = cos(frameCount * 10 + 4 * i) * 50 * randomness;
-
-      let finalPos;
-      if (particles[idx]) {
-        // lerp between original vertex and particle for morph
-        finalPos = p5.Vector.lerp(
-          createVector(x, y, z),
-          particles[idx].pos,
-          morphAmount,
-        );
-      } else {
-        finalPos = createVector(x, y, z);
+        rotateY(20);
+        vertex(x, y, z);
       }
-
-      rotateY(20);
-      vertex(finalPos.x, finalPos.y, finalPos.z);
+      endShape(CLOSE);
     }
-    endShape(CLOSE);
   }
 
-  // update particles
-  if (morphAmount > 0.01 && particles.length === 0) rebuildParticles();
-  for (let p of particles) {
-    p.update();
+  // -------- PARTICLE MORPH --------
+  else {
+    if (particles.length === 0) rebuildParticles();
+
+    for (let p of particles) {
+      p.update();
+      p.draw();
+    }
   }
 }
