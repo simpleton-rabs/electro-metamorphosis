@@ -1,13 +1,25 @@
 // ================= MIDI CONTROLS =================
-const CCSLIDER1 = 36; // size/zoom
-const CCSLIDER2 = 37; // stroke
-const CCSLIDER3 = 38; // dissolve morph
-const CCSLIDER4 = 39; // randomness
+// const CCSLIDER1 = 36; // size/zoom
+const CCSLIDER1 = 0; // size/zoom
 
-const CCDial1 = 32; // red
-const CCDial2 = 33; // green
-const CCDial3 = 34; // blue
-const CCDial4 = 35; // rotation
+const CCSLIDER2 = 1; // stroke
+const CCSLIDER3 = 2; // dissolve morph
+const CCSLIDER4 = 3; // randomness
+
+// const CCSLIDER2 = 37; // stroke
+// const CCSLIDER3 = 38; // dissolve morph
+// const CCSLIDER4 = 39; // randomness
+
+
+// const CCDial1 = 32; // red
+// const CCDial2 = 33; // green
+// const CCDial3 = 34; // blue
+// const CCDial4 = 35; // rotation
+
+const CCDial1 = 16; // red
+const CCDial2 = 17; // green
+const CCDial3 = 18; // blue
+const CCDial4 = 19; // rotation
 
 // ================= GLOBALS =================
 let r = 0,
@@ -52,6 +64,10 @@ function onEnabled() {
 }
 
 function allCC(e) {
+
+  // Log all MIDI CC messages
+    console.log("controller number = " + e.controller.number + ", value = " + e.data[2],);  
+
   let ratio = e.data[2] / 127;
 
   switch (e.controller.number) {
